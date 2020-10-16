@@ -9,6 +9,7 @@ if (window.ace) {
 
     // load required Ace plugins
     require('ace-builds/src-noconflict/mode-json')
+    require('ace-builds/src-noconflict/mode-text')
     require('ace-builds/src-noconflict/ext-searchbox')
 
     // embed Ace json worker

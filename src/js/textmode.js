@@ -68,7 +68,7 @@ textmode.create = function (container, options = {}) {
   // TODO: make the option options.ace deprecated, it's not needed anymore (see #309)
 
   // determine mode
-  this.mode = (options.mode === 'code') ? 'code' : 'text'
+  this.mode = (options.mode === 'code') ? 'code' : ((options.mode === 'text') ? 'text' : 'text-plain')
   if (this.mode === 'code') {
     // verify whether Ace editor is available and supported
     if (typeof _ace === 'undefined') {
@@ -132,37 +132,41 @@ textmode.create = function (container, options = {}) {
     this.frame.appendChild(this.menu)
 
     // create format button
-    const buttonFormat = document.createElement('button')
-    buttonFormat.type = 'button'
-    buttonFormat.className = 'jsoneditor-format'
-    buttonFormat.title = translate('formatTitle')
-    this.menu.appendChild(buttonFormat)
-    buttonFormat.onclick = () => {
-      try {
-        me.format()
-        me._onChange()
-      } catch (err) {
-        me._onError(err)
+    if(this.mode !== 'text-plain') {
+      const buttonFormat = document.createElement('button')
+      buttonFormat.type = 'button'
+      buttonFormat.className = 'jsoneditor-format'
+      buttonFormat.title = translate('formatTitle')
+      this.menu.appendChild(buttonFormat)
+      buttonFormat.onclick = () => {
+        try {
+          me.format()
+          me._onChange()
+        } catch (err) {
+          me._onError(err)
+        }
       }
     }
 
     // create compact button
-    const buttonCompact = document.createElement('button')
-    buttonCompact.type = 'button'
-    buttonCompact.className = 'jsoneditor-compact'
-    buttonCompact.title = translate('compactTitle')
-    this.menu.appendChild(buttonCompact)
-    buttonCompact.onclick = () => {
-      try {
-        me.compact()
-        me._onChange()
-      } catch (err) {
-        me._onError(err)
+    if(this.mode !== 'text-plain') {
+      const buttonCompact = document.createElement('button')
+      buttonCompact.type = 'button'
+      buttonCompact.className = 'jsoneditor-compact'
+      buttonCompact.title = translate('compactTitle')
+      this.menu.appendChild(buttonCompact)
+      buttonCompact.onclick = () => {
+        try {
+          me.compact()
+          me._onChange()
+        } catch (err) {
+          me._onError(err)
+        }
       }
     }
 
     // create sort button
-    if (this.options.enableSort) {
+    if (this.options.enableSort && this.mode !== 'text-plain') {
       const sort = document.createElement('button')
       sort.type = 'button'
       sort.className = 'jsoneditor-sort'
@@ -174,7 +178,7 @@ textmode.create = function (container, options = {}) {
     }
 
     // create transform button
-    if (this.options.enableTransform) {
+    if (this.options.enableTransform && this.mode !== 'text-plain') {
       const transform = document.createElement('button')
       transform.type = 'button'
       transform.title = translate('transformTitleShort')
@@ -186,22 +190,24 @@ textmode.create = function (container, options = {}) {
     }
 
     // create repair button
-    const buttonRepair = document.createElement('button')
-    buttonRepair.type = 'button'
-    buttonRepair.className = 'jsoneditor-repair'
-    buttonRepair.title = translate('repairTitle')
-    this.menu.appendChild(buttonRepair)
-    buttonRepair.onclick = () => {
-      try {
-        me.repair()
-        me._onChange()
-      } catch (err) {
-        me._onError(err)
+    if(this.mode !== 'text-plain') {
+      const buttonRepair = document.createElement('button')
+      buttonRepair.type = 'button'
+      buttonRepair.className = 'jsoneditor-repair'
+      buttonRepair.title = translate('repairTitle')
+      this.menu.appendChild(buttonRepair)
+      buttonRepair.onclick = () => {
+        try {
+          me.repair()
+          me._onChange()
+        } catch (err) {
+          me._onError(err)
+        }
       }
     }
 
     // create undo/redo buttons
-    if (this.mode === 'code') {
+    if (this.mode === 'code' || this.mode === 'text-plain') {
       // create undo button
       const undo = document.createElement('button')
       undo.type = 'button'
@@ -234,7 +240,7 @@ textmode.create = function (container, options = {}) {
       })
     }
 
-    if (this.mode === 'code') {
+    if (this.mode === 'code' || this.mode === 'text-plain') {
       const poweredBy = document.createElement('a')
       poweredBy.appendChild(document.createTextNode('powered by ace'))
       poweredBy.href = 'https://ace.c9.io/'
@@ -258,7 +264,7 @@ textmode.create = function (container, options = {}) {
   this.frame.appendChild(this.content)
   this.container.appendChild(this.frame)
 
-  if (this.mode === 'code') {
+  if (this.mode === 'code' || this.mode === 'text-plain') {
     this.editorDom = document.createElement('div')
     this.editorDom.style.height = '100%' // TODO: move to css
     this.editorDom.style.width = '100%' // TODO: move to css
@@ -271,7 +277,12 @@ textmode.create = function (container, options = {}) {
     aceEditor.setOptions({ readOnly: isReadOnly })
     aceEditor.setShowPrintMargin(false)
     aceEditor.setFontSize('13px')
-    aceSession.setMode('ace/mode/json')
+    if(this.mode === 'text-plain') {
+      aceSession.setMode('ace/mode/text')
+    }
+    else{
+      aceSession.setMode('ace/mode/json')
+    }
     aceSession.setTabSize(this.indentation)
     aceSession.setUseSoftTabs(true)
     aceSession.setUseWrapMode(true)
@@ -691,17 +702,24 @@ textmode.compact = function () {
  */
 textmode.format = function () {
   const json = this.get()
-  const text = JSON.stringify(json, null, this.indentation)
-  this.updateText(text)
+  if(this.mode !== 'text-plain') {
+    const text = JSON.stringify(json, null, this.indentation)
+    this.updateText(text)
+  }
+  else {
+    this.updateText(json)
+  }
 }
 
 /**
  * Repair the code in the text editor
  */
 textmode.repair = function () {
-  const text = this.getText()
-  const repairedText = repair(text)
-  this.updateText(repairedText)
+  if(this.mode !== 'text-plain') {
+    const text = this.getText()
+    const repairedText = repair(text)
+    this.updateText(repairedText)
+  }
 }
 
 /**
@@ -731,7 +749,12 @@ textmode.resize = function () {
  * @param {*} json
  */
 textmode.set = function (json) {
-  this.setText(JSON.stringify(json, null, this.indentation))
+  if(this.mode !== 'text-plain') {
+    this.setText(JSON.stringify(json, null, this.indentation))
+  }
+  else{
+    this.setText(json)
+  }
 }
 
 /**
@@ -829,6 +852,9 @@ textmode.updateText = function (jsonText) {
  * Throws an exception when no JSON schema is configured
  */
 textmode.validate = function () {
+  if(this.mode === 'text-plain') {
+    return
+  }
   let schemaErrors = []
   let parseErrors = []
   let json
@@ -1060,6 +1086,12 @@ export const textModeMixins = [
   },
   {
     mode: 'code',
+    mixin: textmode,
+    data: 'text',
+    load: load
+  },
+  {
+    mode: 'text-plain',
     mixin: textmode,
     data: 'text',
     load: load
